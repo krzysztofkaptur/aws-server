@@ -18,6 +18,14 @@ const posts: Post[] = [
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
+  {
+    id: "3",
+    title: "Hello World dupa2",
+    content: "This is the first post.",
+    author: "Alice",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
 ];
 
 export function getAllPosts(): Post[] {
