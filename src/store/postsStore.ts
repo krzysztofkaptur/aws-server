@@ -1,95 +1,100 @@
-import { randomUUID } from "crypto";
+import { eq } from "drizzle-orm";
+import { db } from "../db";
+import { postsTable } from "../db/schema";
 import type { CreatePostInput, Post, UpdatePostInput } from "../types/post";
 
-const posts: Post[] = [
-  {
-    id: "1",
-    title: "Hello World",
-    content: "This is the first post.",
-    author: "Alice",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "2",
-    title: "Hello World dupa",
-    content: "This is the first post.",
-    author: "Alice",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "3",
-    title: "Hello World dupa2",
-    content: "This is the first post.",
-    author: "Alice",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-export function getAllPosts(): Post[] {
-  return posts;
+// Postgres throws on invalid UUID params; treat those ids as not found.
+function isUuid(id: string): boolean {
+  return UUID_PATTERN.test(id);
 }
 
-export function getPostById(id: string): Post | undefined {
-  return posts.find((post) => post.id === id);
-}
-
-export function createPost(input: CreatePostInput): Post {
-  const now = new Date().toISOString();
-  const post: Post = {
-    id: randomUUID(),
-    title: input.title,
-    content: input.content,
-    author: input.author,
-    createdAt: now,
-    updatedAt: now,
+function toPost(row: typeof postsTable.$inferSelect): Post {
+  return {
+    id: row.id,
+    title: row.title,
+    content: row.content,
+    author: row.author,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
   };
-
-  posts.push(post);
-  return post;
 }
 
-export function updatePost(id: string, input: UpdatePostInput): Post | undefined {
-  const post = getPostById(id);
-  if (!post) {
+export async function getAllPosts(): Promise<Post[]> {
+  const rows = await db.select().from(postsTable);
+  return rows.map(toPost);
+}
+
+export async function getPostById(id: string): Promise<Post | undefined> {
+  if (!isUuid(id)) {
     return undefined;
   }
 
-  if (input.title !== undefined) {
-    post.title = input.title;
-  }
-  if (input.content !== undefined) {
-    post.content = input.content;
-  }
-  if (input.author !== undefined) {
-    post.author = input.author;
-  }
-
-  post.updatedAt = new Date().toISOString();
-  return post;
+  const [row] = await db.select().from(postsTable).where(eq(postsTable.id, id));
+  return row ? toPost(row) : undefined;
 }
 
-export function replacePost(id: string, input: CreatePostInput): Post | undefined {
-  const post = getPostById(id);
-  if (!post) {
+export async function createPost(input: CreatePostInput): Promise<Post> {
+  const [row] = await db.insert(postsTable).values(input).returning();
+  if (!row) {
+    throw new Error("Failed to create post");
+  }
+  return toPost(row);
+}
+
+export async function updatePost(
+  id: string,
+  input: UpdatePostInput,
+): Promise<Post | undefined> {
+  if (!isUuid(id)) {
     return undefined;
   }
 
-  post.title = input.title;
-  post.content = input.content;
-  post.author = input.author;
-  post.updatedAt = new Date().toISOString();
-  return post;
+  const [row] = await db
+    .update(postsTable)
+    .set({
+      ...input,
+      updatedAt: new Date(),
+    })
+    .where(eq(postsTable.id, id))
+    .returning();
+
+  return row ? toPost(row) : undefined;
 }
 
-export function deletePost(id: string): boolean {
-  const index = posts.findIndex((post) => post.id === id);
-  if (index === -1) {
+export async function replacePost(
+  id: string,
+  input: CreatePostInput,
+): Promise<Post | undefined> {
+  if (!isUuid(id)) {
+    return undefined;
+  }
+
+  const [row] = await db
+    .update(postsTable)
+    .set({
+      title: input.title,
+      content: input.content,
+      author: input.author,
+      updatedAt: new Date(),
+    })
+    .where(eq(postsTable.id, id))
+    .returning();
+
+  return row ? toPost(row) : undefined;
+}
+
+export async function deletePost(id: string): Promise<boolean> {
+  if (!isUuid(id)) {
     return false;
   }
 
-  posts.splice(index, 1);
-  return true;
+  const deleted = await db
+    .delete(postsTable)
+    .where(eq(postsTable.id, id))
+    .returning({ id: postsTable.id });
+
+  return deleted.length > 0;
 }

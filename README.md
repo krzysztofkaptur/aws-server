@@ -1,16 +1,27 @@
 # Posts API
 
-Simple Express + TypeScript REST API with in-memory posts storage and Swagger docs.
+Express + TypeScript REST API for posts, backed by PostgreSQL (Drizzle ORM) with Swagger docs.
 
 ## Setup
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm db:up
+pnpm dev
 ```
+
+Or run API + Postgres together:
+
+```bash
+pnpm docker:up
+```
+
+Copy `.env.example` to `.env` for local `pnpm dev`. Migrations run on server start.
 
 - API: `http://localhost:3000`
 - Swagger UI: `http://localhost:3000/api-docs`
+
+After schema changes: `pnpm db:generate`.
 
 ## Endpoints
 

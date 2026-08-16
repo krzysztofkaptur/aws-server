@@ -26,8 +26,8 @@ const router = Router();
  *               items:
  *                 $ref: '#/components/schemas/Post'
  */
-router.get("/", (_req: Request, res: Response) => {
-  res.json(getAllPosts());
+router.get("/", async (_req: Request, res: Response) => {
+  res.json(await getAllPosts());
 });
 
 /**
@@ -52,8 +52,8 @@ router.get("/", (_req: Request, res: Response) => {
  *       404:
  *         description: Post not found
  */
-router.get("/:id", (req: Request<{ id: string }>, res: Response) => {
-  const post = getPostById(req.params.id);
+router.get("/:id", async (req: Request<{ id: string }>, res: Response) => {
+  const post = await getPostById(req.params.id);
   if (!post) {
     res.status(404).json({ error: "Post not found" });
     return;
@@ -84,7 +84,7 @@ router.get("/:id", (req: Request<{ id: string }>, res: Response) => {
  *       400:
  *         description: Invalid request body
  */
-router.post("/", (req: Request, res: Response) => {
+router.post("/", async (req: Request, res: Response) => {
   const { title, content, author } = req.body ?? {};
 
   if (
@@ -101,7 +101,7 @@ router.post("/", (req: Request, res: Response) => {
     return;
   }
 
-  const post = createPost({ title, content, author });
+  const post = await createPost({ title, content, author });
   res.status(201).json(post);
 });
 
@@ -135,7 +135,7 @@ router.post("/", (req: Request, res: Response) => {
  *       404:
  *         description: Post not found
  */
-router.put("/:id", (req: Request<{ id: string }>, res: Response) => {
+router.put("/:id", async (req: Request<{ id: string }>, res: Response) => {
   const { title, content, author } = req.body ?? {};
 
   if (
@@ -152,7 +152,7 @@ router.put("/:id", (req: Request<{ id: string }>, res: Response) => {
     return;
   }
 
-  const post = replacePost(req.params.id, { title, content, author });
+  const post = await replacePost(req.params.id, { title, content, author });
   if (!post) {
     res.status(404).json({ error: "Post not found" });
     return;
@@ -191,7 +191,7 @@ router.put("/:id", (req: Request<{ id: string }>, res: Response) => {
  *       404:
  *         description: Post not found
  */
-router.patch("/:id", (req: Request<{ id: string }>, res: Response) => {
+router.patch("/:id", async (req: Request<{ id: string }>, res: Response) => {
   const { title, content, author } = req.body ?? {};
 
   if (title === undefined && content === undefined && author === undefined) {
@@ -214,7 +214,7 @@ router.patch("/:id", (req: Request<{ id: string }>, res: Response) => {
     return;
   }
 
-  const post = updatePost(req.params.id, { title, content, author });
+  const post = await updatePost(req.params.id, { title, content, author });
   if (!post) {
     res.status(404).json({ error: "Post not found" });
     return;
@@ -241,8 +241,8 @@ router.patch("/:id", (req: Request<{ id: string }>, res: Response) => {
  *       404:
  *         description: Post not found
  */
-router.delete("/:id", (req: Request<{ id: string }>, res: Response) => {
-  const deleted = deletePost(req.params.id);
+router.delete("/:id", async (req: Request<{ id: string }>, res: Response) => {
+  const deleted = await deletePost(req.params.id);
   if (!deleted) {
     res.status(404).json({ error: "Post not found" });
     return;
